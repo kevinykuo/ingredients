@@ -147,6 +147,7 @@ feature_importance.explainer <- function(x,
                              y,
                              predict_function = predict_function,
                              loss_function = loss_function,
+                             weights = x$weights,
                              label = label,
                              type = type,
                              n_sample = n_sample,
@@ -164,6 +165,7 @@ feature_importance.default <- function(x,
                                        y,
                                        predict_function = predict,
                                        loss_function = loss_root_mean_square,
+                                       weights,
                                        ...,
                                        label = class(x)[1],
                                        type = c("raw", "ratio", "difference"),
@@ -211,15 +213,16 @@ feature_importance.default <- function(x,
     }
     sampled_data <- data[sampled_rows, ]
     observed <- y[sampled_rows]
+    weights <- weights[sampled_rows]
     # loss on the full model or when outcomes are permuted
-    loss_full <- loss_function(observed, predict_function(x, sampled_data))
-    loss_baseline <- loss_function(sample(observed), predict_function(x, sampled_data))
+    loss_full <- loss_function(observed, predict_function(x, sampled_data), weights = weights)
+    loss_baseline <- loss_function(sample(observed), predict_function(x, sampled_data), weights = weights)
     # loss upon dropping single variables (or single groups)
     loss_features <- sapply(variables, function(variables_set) {
       ndf <- sampled_data
       ndf[, variables_set] <- ndf[sample(1:nrow(ndf)), variables_set]
       predicted <- predict_function(x, ndf)
-      loss_function(observed, predicted)
+      loss_function(observed, predicted, weights = weights)
     })
     c("_full_model_" = loss_full, loss_features, "_baseline_" = loss_baseline)
   }
